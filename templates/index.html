@@ -3,164 +3,70 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Robot AI Phân Loại Tiếng Ồn Lớp Học</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@3.21.0/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow-models/speech-commands@0.5.4/dist/speech-commands.min.js"></script>
+  <title>Màn Hình Giám Sát Trật Tự Lớp Học</title>
   <style>
     * { box-sizing: border-box; font-family: 'Segoe UI', Tahoma, sans-serif; }
-    body { background: #f1f5f9; margin: 0; padding: 20px; color: #1e293b; }
-    .container { max-width: 900px; margin: 0 auto; }
-    .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px; }
-    .header h1 { font-size: 20px; margin: 0; color: #0f172a; }
-    .header-actions { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-    button {
-      background: #2563eb; color: white; border: none; padding: 10px 16px;
-      border-radius: 8px; font-size: 14px; font-weight: 600; cursor: pointer;
-    }
-    button:hover { background: #1d4ed8; }
-    button.connected { background: #059669; }
-    .wifi-pill {
-      padding: 8px 14px; border-radius: 99px; font-size: 13px; font-weight: 700;
-      background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5;
-    }
-    .wifi-pill.online { background: #d1fae5; color: #065f46; border-color: #6ee7b7; }
+    body { background: #0f172a; margin: 0; padding: 20px; color: #f8fafc; }
+    .container { max-width: 600px; margin: 0 auto; }
+    .card { background: #1e293b; border-radius: 16px; padding: 20px; margin-bottom: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); text-align: center; }
+    h1 { font-size: 22px; margin: 0 0 6px; color: #38bdf8; }
+    .wifi-badge { display: inline-block; padding: 6px 14px; border-radius: 99px; font-size: 13px; font-weight: 700; background: #7f1d1d; color: #fca5a5; margin-bottom: 14px; }
+    .wifi-badge.online { background: #064e3b; color: #6ee7b7; }
+    
+    .status-box { padding: 20px; border-radius: 12px; font-size: 24px; font-weight: 800; margin: 14px 0; transition: 0.3s; }
+    .NORMAL { background: #064e3b; color: #6ee7b7; border: 2px solid #10b981; }
+    .WARN1  { background: #78350f; color: #fcd34d; border: 2px solid #f59e0b; }
+    .WARN2  { background: #7f1d1d; color: #fca5a5; border: 2px solid #ef4444; }
 
-    .ai-setup {
-      background: #fff; padding: 16px; border-radius: 12px; margin-bottom: 16px;
-      box-shadow: 0 2px 8px rgba(0,0,0,0.05); display: flex; gap: 10px; align-items: center; flex-wrap: wrap;
-    }
-    .ai-setup input {
-      flex: 1; min-width: 260px; padding: 10px 12px; border: 1px solid #cbd5e1;
-      border-radius: 8px; font-size: 14px; color: #334155;
-    }
-    .ai-setup select { padding: 10px; border-radius: 8px; border: 1px solid #cbd5e1; font-size: 14px; font-weight: 600; }
-
-    .grid-top { display: grid; grid-template-columns: 2fr 1fr; gap: 16px; margin-bottom: 16px; }
-    @media (max-width: 640px) { .grid-top { grid-template-columns: 1fr; } }
-    .status-card, .stat-card, .ai-card {
-      padding: 20px; border-radius: 16px; background: #fff;
-      box-shadow: 0 4px 12px rgba(0,0,0,0.05); border: 3px solid #cbd5e1; transition: 0.25s;
-    }
-    .status-card { text-align: center; }
-    .status-card.NORMAL { background: #ecfdf5; border-color: #10b981; color: #065f46; }
-    .status-card.WARN1  { background: #fffbeb; border-color: #f59e0b; color: #92400e; }
-    .status-card.WARN2  { background: #fef2f2; border-color: #ef4444; color: #991b1b; }
-
-    .status-icon { font-size: 46px; margin-bottom: 4px; }
-    .status-text { font-size: 24px; font-weight: 800; }
-    .status-sub  { font-size: 14px; margin-top: 4px; }
-
-    .stat-card { display: flex; flex-direction: column; justify-content: center; text-align: center; border-color: #e2e8f0; }
-    .stat-num { font-size: 50px; font-weight: 900; color: #dc2626; line-height: 1.1; }
-    .stat-label { font-size: 13px; font-weight: 700; color: #475569; margin-top: 6px; }
-
-    .meter-box { margin-top: 14px; text-align: left; }
-    .meter-bar-bg { width: 100%; height: 12px; background: #e2e8f0; border-radius: 99px; overflow: hidden; margin-top: 4px; }
-    .meter-bar-fill { height: 100%; width: 0%; background: #10b981; transition: width 0.15s; }
-
-    .ai-card { border-color: #e2e8f0; margin-bottom: 16px; }
-    .prob-row { display: flex; align-items: center; gap: 10px; margin-bottom: 8px; font-size: 14px; }
-    .prob-name { width: 170px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-    .prob-bar-bg { flex: 1; height: 10px; background: #e2e8f0; border-radius: 99px; overflow: hidden; }
-    .prob-bar-fill { height: 100%; background: #6366f1; transition: width 0.15s; }
-
-    .log-card { background: white; padding: 18px; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.05); }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { text-align: left; padding: 10px; border-bottom: 1px solid #e2e8f0; font-size: 14px; }
-    .badge { padding: 4px 10px; border-radius: 99px; font-weight: 600; font-size: 12px; }
-    .b-normal { background: #d1fae5; color: #047857; }
-    .b-warn1  { background: #fef3c7; color: #b45309; }
-    .b-warn2  { background: #fee2e2; color: #b91c1c; }
-    .b-filter { background: #e0e7ff; color: #3730a3; }
+    .stat-row { display: flex; justify-content: space-around; margin: 16px 0; font-size: 16px; }
+    .stat-val { font-size: 28px; font-weight: 900; color: #38bdf8; }
+    
+    button { width: 100%; padding: 14px; border: none; border-radius: 10px; font-size: 16px; font-weight: bold; cursor: pointer; margin-top: 10px; }
+    .btn-voice { background: #2563eb; color: white; }
+    .btn-voice.active { background: #16a34a; }
+    .btn-reset { background: #475569; color: #f1f5f9; font-size: 13px; padding: 10px; }
   </style>
 </head>
 <body>
   <div class="container">
-    <div class="header">
-      <h1>🧠 Robot AI Phân Loại Tiếng Ồn Lớp Học</h1>
-      <div class="header-actions">
-        <button id="voiceBtn" style="background:#0284c7;">🔊 Bật giọng nói nhắc</button>
-        <span id="wifiBadge" class="wifi-pill">🔴 Chờ Robot Wi-Fi...</span>
-      </div>
-    </div>
+    <div class="card">
+      <h1>🏫 GIÁM SÁT TRẬT TỰ LỚP HỌC AI</h1>
+      <div id="wifiBadge" class="wifi-badge">🔴 Robot đang Offline</div>
 
-    <div class="ai-setup">
-      <input type="text" id="modelUrl" value="https://teachablemachine.withgoogle.com/models/5pzqLn5Lg/">
-      <button id="loadAiBtn" style="background:#7c3aed;">🎙️ Bật AI Nhận Diện</button>
-      <select id="targetClassSelect" title="Chọn nhãn kích hoạt còi">
-        <option value="">-- Nhãn mất trật tự --</option>
-      </select>
-    </div>
+      <div id="statusBox" class="status-box NORMAL">ĐANG CHỜ DỮ LIỆU...</div>
 
-    <div class="grid-top">
-      <div id="statusCard" class="status-card NORMAL">
-        <div id="statusIcon" class="status-icon">😊</div>
-        <div id="statusText" class="status-text">TRẠNG THÁI BÌNH THƯỜNG</div>
-        <div id="statusSub" class="status-sub">Bấm "Bật AI Nhận Diện" để kích hoạt phân loại âm thanh</div>
-        <div class="meter-box">
-          <div style="display:flex; justify-content:space-between; font-size:13px;">
-            <span>Micro ESP32-S3: <strong id="dbVal">42 dB</strong></span>
-            <span>Ngưỡng: <strong>&lt;55 dB</strong> (Yên) | <strong>&gt;65 dB</strong> (Ồn)</span>
-          </div>
-          <div class="meter-bar-bg"><div id="meterFill" class="meter-bar-fill"></div></div>
-        </div>
+      <div class="stat-row">
+        <div>Độ ồn thực tế<div id="dbVal" class="stat-val">-- dB</div></div>
+        <div>Số lần vi phạm<div id="violVal" class="stat-val" style="color:#f87171;">0</div></div>
       </div>
 
-      <div class="stat-card">
-        <div id="violationCount" class="stat-num">0</div>
-        <div class="stat-label">SỐ LẦN VI PHẠM</div>
-      </div>
-    </div>
-
-    <div class="ai-card">
-      <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:10px;">
-        <strong>🎧 Phân tích âm thanh AI trực tiếp</strong>
-        <span id="aiVerdict" class="badge b-filter">AI chưa bật</span>
-      </div>
-      <div id="probContainer">Bấm nút "Bật AI Nhận Diện" ở trên để tải mô hình Teachable Machine...</div>
-    </div>
-
-    <div class="log-card">
-      <div style="display:flex; justify-content:space-between; align-items:center;">
-        <h3 style="margin:0; font-size:16px;">📋 Nhật ký hoạt động & Lọc nhiễu AI</h3>
-        <button onclick="document.getElementById('logBody').innerHTML=''" style="background:#64748b; padding:6px 12px; font-size:13px;">Xóa lịch sử</button>
-      </div>
-      <table>
-        <thead><tr><th>Thời gian</th><th>Trạng thái</th><th>Chi tiết phân tích</th></tr></thead>
-        <tbody id="logBody"></tbody>
-      </table>
+      <button id="voiceBtn" class="btn-voice" onclick="toggleVoice()">🔊 Đang bật giọng nói nhắc từ xa</button>
+      <button class="btn-reset" onclick="resetCounter()">🔄 Đặt lại bộ đếm tiết học</button>
     </div>
   </div>
 
   <script>
-    let currentDb = 42;
-    let currentState = 'NORMAL';
-    let violationCount = 0;
-    let voiceEnabled = false;
+    let lastSpokenState = '';
 
-    let noiseStartTime = null;
-    let quietStartTime = null;
-    let lastFilterLogTime = 0;
+    async function toggleVoice() {
+      const res = await fetch('/api/toggle-voice', { method: 'POST' });
+      const data = await res.json();
+      updateVoiceBtn(data.voice_enabled);
+    }
 
-    let classLabels = [];
-    let latestScores = [];
-    let aiReady = false;
-
-    document.getElementById('voiceBtn').addEventListener('click', () => {
-      voiceEnabled = !voiceEnabled;
+    function updateVoiceBtn(enabled) {
       const btn = document.getElementById('voiceBtn');
-      if (voiceEnabled) {
-        btn.textContent = '🔊 Đang bật giọng nói';
-        btn.classList.add('connected');
-        speakVietnamese('Hệ thống giám sát trật tự đã sẵn sàng.');
+      if (enabled) {
+        btn.textContent = "🔊 Đang bật giọng nói nhắc từ xa";
+        btn.classList.add('active');
       } else {
-        btn.textContent = '🔊 Bật giọng nói nhắc';
-        btn.classList.remove('connected');
+        btn.textContent = "🔇 Đã tắt giọng nói nhắc từ xa";
+        btn.classList.remove('active');
       }
-    });
+    }
 
     function speakVietnamese(text) {
-      if (!voiceEnabled || !('speechSynthesis' in window)) return;
+      if (!('speechSynthesis' in window)) return;
       window.speechSynthesis.cancel();
       const utter = new SpeechSynthesisUtterance(text);
       utter.lang = 'vi-VN';
@@ -168,185 +74,50 @@
       window.speechSynthesis.speak(utter);
     }
 
-    document.getElementById('loadAiBtn').addEventListener('click', async () => {
-      let url = document.getElementById('modelUrl').value.trim();
-      if (!url) return alert('Vui lòng dán đường link mô hình từ Teachable Machine!');
-      if (!url.endsWith('/')) url += '/';
+    async function resetCounter() {
+      await fetch('/api/reset', { method: 'POST' });
+    }
 
-      const btn = document.getElementById('loadAiBtn');
-      btn.textContent = '⏳ Đang tải AI...';
-
-      try {
-        const recognizer = speechCommands.create('BROWSER_FFT', undefined, url + 'model.json', url + 'metadata.json');
-        await recognizer.ensureModelLoaded();
-        classLabels = recognizer.wordLabels();
-
-        const select = document.getElementById('targetClassSelect');
-        select.innerHTML = '';
-        let matchedIdx = classLabels.length - 1;
-        classLabels.forEach((label, idx) => {
-          const opt = document.createElement('option');
-          opt.value = idx;
-          opt.textContent = 'Nhãn phạt: ' + label;
-          if (label.toLowerCase().includes('trat') || label.toLowerCase().includes('on') || label.toLowerCase().includes('noisy')) {
-            matchedIdx = idx;
-          }
-          select.appendChild(opt);
-        });
-        select.value = matchedIdx;
-
-        const container = document.getElementById('probContainer');
-        container.innerHTML = classLabels.map((lbl, i) => `
-          <div class="prob-row">
-            <div class="prob-name">${lbl}</div>
-            <div class="prob-bar-bg"><div id="pbar-${i}" class="prob-bar-fill" style="width:0%"></div></div>
-            <div id="pval-${i}" style="width:42px; text-align:right;">0%</div>
-          </div>
-        `).join('');
-
-        recognizer.listen(result => {
-          latestScores = Array.from(result.scores);
-          latestScores.forEach((score, i) => {
-            const pct = Math.round(score * 100);
-            document.getElementById(`pbar-${i}`).style.width = pct + '%';
-            document.getElementById(`pval-${i}`).textContent = pct + '%';
-          });
-          evaluateRules();
-        }, { includeSpectrogram: false, probabilityThreshold: 0.4, overlapFactor: 0.5 });
-
-        aiReady = true;
-        btn.textContent = '✅ AI Đang Lắng Nghe';
-        btn.classList.add('connected');
-      } catch (e) {
-        btn.textContent = '🎙️ Bật AI Nhận Diện';
-        alert('Không tải được mô hình AI. Kiểm tra mạng và quyền Micro trên trình duyệt!');
-      }
-    });
-
+    // Cập nhật trạng thái liên tục từ Server mỗi 0.5 giây
     setInterval(async () => {
       try {
         const res = await fetch('/api/status');
         const data = await res.json();
+
         const badge = document.getElementById('wifiBadge');
         if (data.online) {
-          badge.textContent = '🟢 Robot ESP32-S3 Online';
+          badge.textContent = "🟢 Robot AI Online";
           badge.classList.add('online');
-          currentDb = data.db;
-          updateDbMeter(currentDb);
-          evaluateRules();
         } else {
-          badge.textContent = '🔴 Chờ Robot Wi-Fi...';
+          badge.textContent = "🔴 Robot đang Offline";
           badge.classList.remove('online');
-        }
-      } catch (e) {}
-    }, 450);
-
-    function updateDbMeter(db) {
-      document.getElementById('dbVal').textContent = db + ' dB';
-      const pct = Math.min(100, Math.max(5, Math.round(((db - 40) / 50) * 100)));
-      const fill = document.getElementById('meterFill');
-      fill.style.width = pct + '%';
-      fill.style.background = db > 65 ? '#ef4444' : (db >= 55 ? '#f59e0b' : '#10b981');
-    }
-
-    async function evaluateRules() {
-      const now = Date.now();
-      const targetIdx = parseInt(document.getElementById('targetClassSelect').value);
-
-      let isDisorderlyAI = false;
-      let topLabel = 'Chưa bật AI';
-      let topPct = 0;
-
-      if (aiReady && latestScores.length > 0 && !isNaN(targetIdx)) {
-        const disorderScore = latestScores[targetIdx] || 0;
-        const maxIdx = latestScores.indexOf(Math.max(...latestScores));
-        isDisorderlyAI = (maxIdx === targetIdx && disorderScore >= 0.50);
-
-        topLabel = classLabels[maxIdx];
-        topPct = Math.round(latestScores[maxIdx] * 100);
-
-        const verdictEl = document.getElementById('aiVerdict');
-        verdictEl.textContent = `AI: ${topLabel} (${topPct}%)`;
-        verdictEl.style.background = isDisorderlyAI ? '#fee2e2' : '#d1fae5';
-        verdictEl.style.color = isDisorderlyAI ? '#b91c1c' : '#047857';
-      }
-
-      if (currentDb > 65) {
-        quietStartTime = null;
-
-        if (!isDisorderlyAI) {
-          if (currentState === 'NORMAL') {
-            noiseStartTime = null;
-            updateCardUI('NORMAL', `AI bỏ qua: "${topLabel}" (${topPct}%)`);
-            if (aiReady && now - lastFilterLogTime > 8000) {
-              addLog(new Date().toLocaleTimeString('vi-VN'), '<span class="badge b-filter">🛡️ AI lọc nhiễu</span>', `Âm thanh ${currentDb} dB nhưng là "${topLabel}" (${topPct}%) -> Không phạt`);
-              lastFilterLogTime = now;
-            }
-          }
           return;
         }
 
-        if (!noiseStartTime) noiseStartTime = now;
-        const elapsed = now - noiseStartTime;
+        document.getElementById('dbVal').textContent = data.db + " dB";
+        document.getElementById('violVal').textContent = data.violations;
+        updateVoiceBtn(data.voice_enabled);
 
-        if (elapsed >= 10000 && currentState !== 'WARN2') {
-          currentState = 'WARN2';
-          await sendCommandToRobot('WARN2');
-          speakVietnamese('Cảnh báo, lớp đang quá ồn, đề nghị các bạn giữ trật tự!');
-          updateCardUI('WARN2', `Mất trật tự quá 10 giây (${currentDb} dB) - Còi liên hồi!`);
-          addLog(new Date().toLocaleTimeString('vi-VN'), '<span class="badge b-warn2">🔴 Nhắc nhở lần 2</span>', `AI xác nhận "${topLabel}" (${topPct}%) kéo dài >10s (${currentDb} dB)`);
-        } else if (elapsed >= 3000 && currentState === 'NORMAL') {
-          currentState = 'WARN1';
-          violationCount++;
-          document.getElementById('violationCount').textContent = violationCount;
-          await sendCommandToRobot('WARN1');
-          speakVietnamese('Các bạn ơi, lớp mình giữ trật tự nhé!');
-          updateCardUI('WARN1', `AI phát hiện mất trật tự >3 giây (${currentDb} dB)`);
-          addLog(new Date().toLocaleTimeString('vi-VN'), '<span class="badge b-warn1">🟡 Nhắc nhở lần 1</span>', `AI xác nhận "${topLabel}" (${topPct}%) ở mức ${currentDb} dB -> Ghi nhận +1 vi phạm`);
-        }
-      } else if (currentDb < 55) {
-        if (!quietStartTime) quietStartTime = now;
-        if (now - quietStartTime >= 600) {
-          noiseStartTime = null;
-          if (currentState !== 'NORMAL') {
-            currentState = 'NORMAL';
-            await sendCommandToRobot('NORMAL');
-            updateCardUI('NORMAL', 'Âm thanh giảm dưới 55 dB - Đã tắt còi');
-            addLog(new Date().toLocaleTimeString('vi-VN'), '<span class="badge b-normal">🟢 Bình thường</span>', `Độ ồn giảm còn ${currentDb} dB`);
+        const box = document.getElementById('statusBox');
+        box.className = "status-box " + data.state;
+
+        if (data.state === "WARN2") {
+          box.textContent = "CẢNH BÁO: LỚP QUÁ ỒN!";
+          if (data.voice_enabled && lastSpokenState !== "WARN2") {
+            speakVietnamese("Cảnh báo, lớp đang quá ồn, đề nghị các bạn giữ trật tự!");
           }
+        } else if (data.state === "WARN1") {
+          box.textContent = "NHẮC NHỞ: GIỮ TRẬT TỰ";
+          if (data.voice_enabled && lastSpokenState !== "WARN1") {
+            speakVietnamese("Các bạn ơi, lớp mình giữ trật tự nhé!");
+          }
+        } else {
+          box.textContent = "LỚP HỌC YÊN TĨNH";
         }
-      } else {
-        quietStartTime = null;
-      }
-    }
+        lastSpokenState = data.state;
 
-    async function sendCommandToRobot(cmd) {
-      try {
-        await fetch('/api/cmd', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ cmd })
-        });
-      } catch (e) { console.error(e); }
-    }
-
-    function updateCardUI(state, subText) {
-      const card = document.getElementById('statusCard');
-      const icon = document.getElementById('statusIcon');
-      const text = document.getElementById('statusText');
-      const sub  = document.getElementById('statusSub');
-      card.className = 'status-card ' + state;
-      sub.textContent = subText;
-      if (state === 'WARN1') { icon.textContent = '😮'; text.textContent = 'NHẮC NHỞ LẦN 1'; }
-      else if (state === 'WARN2') { icon.textContent = '😠'; text.textContent = 'NHẮC NHỞ LẦN 2!'; }
-      else { icon.textContent = '😊'; text.textContent = 'TRẠNG THÁI BÌNH THƯỜNG'; }
-    }
-
-    function addLog(time, badge, detail) {
-      document.getElementById('logBody').insertAdjacentHTML('afterbegin',
-        `<tr><td><strong>${time}</strong></td><td>${badge}</td><td>${detail}</td></tr>`
-      );
-    }
+      } catch (e) {}
+    }, 500);
   </script>
 </body>
 </html>
